@@ -1,0 +1,4 @@
+[core]
+    remote = cat_breed_detector_data
+['remote "cat_breed_detector_data"']
+    url = ../data

@@ -1,0 +1,12 @@
+label: mlflow
+
+# Wandb
+project: cat-breed-detector
+name: vit-image-classifier
+save_dir: "."
+
+# MLFlow
+experiment_name: cat-breed-detector
+run_name: vit-image-classifier
+mlflow_save_dir: "mlflowruns"
+tracking_uri: http://127.0.0.1:8080

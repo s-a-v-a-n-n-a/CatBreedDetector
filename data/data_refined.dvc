@@ -1,0 +1,6 @@
+outs:
+- md5: 5cca0e03fa93c1e387610d815cc612b6.dir
+  size: 467032758
+  nfiles: 7000
+  hash: md5
+  path: data_refined

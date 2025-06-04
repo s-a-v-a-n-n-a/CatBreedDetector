@@ -1,0 +1,6 @@
+outs:
+- md5: fab1c6c430e5ea0ef81d6c6e86883d57.dir
+  size: 2328
+  nfiles: 2
+  hash: md5
+  path: labels_metainfo
