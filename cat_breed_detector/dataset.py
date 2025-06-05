@@ -7,15 +7,20 @@ from torch.utils.data import Dataset, DataLoader, random_split
 from datasets import ClassLabel, Dataset as HFDataset
 import PIL.Image as Image
 from torch.utils.data import WeightedRandomSampler
+import torchvision.transforms as transforms
 from collections import Counter
+from transformers import (
+    ViTImageProcessor,
+    ViTForImageClassification
+)
 
 
 class CatBreedDataset(Dataset):
     def __init__(
             self,
-            dataset,
-            processor,
-            transform=None
+            dataset: Dataset,
+            processor: ViTImageProcessor,
+            transform: transforms.Compose = None
     ) -> None:
         self._dataset = dataset
 
@@ -25,9 +30,9 @@ class CatBreedDataset(Dataset):
     @classmethod
     def from_dataset(
             cls,
-            dataset,
-            processor,
-            transform=None
+            dataset: Dataset,
+            processor: ViTImageProcessor,
+            transform: transforms.Compose = None
     ) -> 'CatBreedDataset':
         result = cls(
             dataset,
@@ -51,15 +56,15 @@ class CatBreedDataset(Dataset):
     @classmethod
     def from_data_path(
             cls,
-            data_dir,
-            num_labels,
-            processor,
-            seed,
-            transform,
+            data_dirs: list[Path],
+            num_labels: int,
+            processor: ViTImageProcessor,
+            seed: int,
+            transform: transforms.Compose,
             randomize: bool = True,
     ) -> 'CatBreedDataset':
         df, labels = CatBreedDataset.get_dataframe_from_dir(
-            data_dir,
+            data_dirs,
             num_labels
         )
         result = cls(
@@ -88,21 +93,23 @@ class CatBreedDataset(Dataset):
 
     @staticmethod
     def get_dataframe_from_dir(
-            dataset_path: Path,
+            dataset_paths: list[Path],
             num_labels: int
     ) -> pd.DataFrame:
         file_names = []
         labels = []
 
-        for file in tqdm(sorted(Path(dataset_path).glob('*/*.*'))):
-            if str(file).endswith('.jpg') or str(file).endswith('.png'): 
-                file_names.append(str(file))
-                label = str(file).split('/')[-2]
-                labels.append(label)
+        for dataset_path in dataset_paths:
+            for file in tqdm(sorted(Path(dataset_path).glob('*/*.*'))):
+                if str(file).endswith('.jpg') or str(file).endswith('.png'): 
+                    file_names.append(str(file))
+                    label = str(file).split('/')[-2]
+                    labels.append(label)
         df = pd.DataFrame.from_dict({"image": file_names, "label": labels})
 
         df = df[df['label'].isin(df['label'].value_counts().head(num_labels).index)]
-
+        labels = sorted(list(set(df["label"])))
+        print(len(labels))
         redundant_labels_dict = {
             'Norwegian Forest Cat': 'Norwegian Forest',
             'Sphynx - Hairless Cat': 'Sphynx'
@@ -110,6 +117,7 @@ class CatBreedDataset(Dataset):
         df['label'] = df['label'].replace(redundant_labels_dict)
 
         labels = sorted(list(set(df["label"])))
+        print(len(labels))
 
         return df, labels
 
@@ -139,7 +147,6 @@ class CatBreedDataset(Dataset):
             resampled_df = pd.concat(processed_chunks, ignore_index=True)
         else:
             resampled_df = df
-        # resampled_df = CatBreedDataset.random_resample(df)
         dataset = HFDataset.from_pandas(
             resampled_df
         )
@@ -151,32 +158,6 @@ class CatBreedDataset(Dataset):
         dataset = dataset.cast_column('label', ClassLabels)
 
         return dataset
-
-    # def random_resample(
-    #         self,
-    #         dataframe
-    # ) -> pd.Dataframe:
-    #     rus = RandomUnderSampler(
-    #         random_state=83,
-    #         sampling_strategy='majority'
-    #     )
-    #     y = dataframe[['label']]
-    #     dataframe = dataframe.drop(['label'], axis=1)
-    #     dataframe, y_resampled = rus.fit_resample(dataframe, y)
-    #     del y
-    #     dataframe['label'] = y_resampled
-    #     del y_resampled
-    #     # random oversampling of all minority classes
-    #     y = dataframe[['label']]
-    #     dataframe = dataframe.drop(['label'], axis=1)
-
-    #     ros = RandomOverSampler(random_state=83)
-    #     dataframe, y_resampled = ros.fit_resample(dataframe, y)
-    #     del y
-    #     dataframe['label'] = y_resampled
-    #     del y_resampled
-
-    #     return dataframe
 
     @staticmethod
     def random_resample(

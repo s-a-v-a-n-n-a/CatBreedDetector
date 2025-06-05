@@ -15,9 +15,9 @@ class CatBreedClassifier(pl.LightningModule):
             num_labels: int,
             lr: float,
             weight_decay: float,
-            num_warmup_steps: int,
-            num_training_steps: int,
             datamodule: pl.LightningDataModule,
+            num_warmup_steps: int = 1,
+            num_training_steps: int = 1,
             for_test: bool = False
     ) -> None:
         super().__init__()
@@ -45,6 +45,8 @@ class CatBreedClassifier(pl.LightningModule):
                 num_classes=num_labels,
                 average='weighted'
             )
+            self.num_warmup_steps = num_warmup_steps
+            self.num_training_steps = num_training_steps
         if for_test:
             self.test_accuracy = torchmetrics.Accuracy(
                 task="multiclass",
@@ -55,8 +57,6 @@ class CatBreedClassifier(pl.LightningModule):
                 num_classes=num_labels,
                 average='weighted'
             )
-        self.num_warmup_steps = num_warmup_steps
-        self.num_training_steps = num_training_steps
         self.datamodule = datamodule
 
     def forward(self, x):
@@ -136,7 +136,7 @@ class CatBreedClassifier(pl.LightningModule):
         preds = self(pixel_values)
         loss = self.criterion(preds, labels)
 
-        preds = preds.argmax(1)
+        preds = preds.argmax(-1)
         self.test_accuracy.update(preds, labels)
         self.test_f1score.update(preds, labels)
         self.log(

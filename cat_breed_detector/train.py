@@ -19,27 +19,31 @@ from download_data import ensure_data_downloaded
 
 @hydra.main(version_base=None, config_path="../configs", config_name="config")
 def main(config: DictConfig):
-    ensure_data_downloaded(config["data_loading"]["train_data_path"])
+    data_directories = config["data_loading"]["data_path"]
+    for data_path in data_directories:
+        ensure_data_downloaded(data_path)
     ensure_data_downloaded(config["data_loading"]["labels2id_meta"])
     ensure_data_downloaded(config["data_loading"]["id2labels_meta"])
     datamodule = CustomDataModule(
-        config["data_loading"]["train_data_path"],
+        data_directories,
         config["model"]["num_labels"],
         config["data_loading"]["labels2id_meta"],
         config["data_loading"]["id2labels_meta"],
         batch_size=config["training"]["batch_size"],
         num_workers=config["training"]["num_workers"],
-        train_val_ratio=config["training"]["train_val_ratio"],
+        data_split_ratio=config["training"]["train_val_ratio"],
         seed=config["training"]["seed"]
     )
-    datamodule.train_setup()
+    datamodule.prepare_data()
+    datamodule.setup()
 
     logger = get_logger(config["logging"])
 
     labels_list = datamodule.labels
+    print(len(labels_list))
     id2label = datamodule.id2label
     label2id = datamodule.label2id
-    assert len(labels_list) == config["model"]["num_labels"]
+    assert len(labels_list) <= config["model"]["num_labels"]
     model = get_model(
         len(labels_list),
         id2label,

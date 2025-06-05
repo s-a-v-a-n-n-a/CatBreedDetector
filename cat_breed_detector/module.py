@@ -37,7 +37,7 @@ class CustomDataModule(pl.LightningDataModule):
             label2id_meta_file: Path,
             batch_size: int,
             num_workers: int,
-            train_val_ratio: float,
+            data_split_ratio: float,
             seed: int
     ) -> None:
         super().__init__()
@@ -47,7 +47,7 @@ class CustomDataModule(pl.LightningDataModule):
         self.label2id_meta_file = label2id_meta_file
         self.batch_size = batch_size
         self.num_workers = num_workers
-        self.train_val_ratio = train_val_ratio
+        self.data_split_ratio = data_split_ratio
 
         self._seed = seed
         self._generator = torch.Generator().manual_seed(seed)
@@ -79,18 +79,57 @@ class CustomDataModule(pl.LightningDataModule):
 
         return {"pixel_values": pixel_values, "labels": labels}
 
-    def test_setup(self, stage=None):
-        self.custom_test_dataset = CatBreedDataset.from_data_path(
-            self._data_dir,
-            self._num_labels,
+    def train_test_split(
+            self,
+            dataset: Dataset
+    ) -> tuple[CatBreedDataset, CatBreedDataset]:
+        total_size = len(dataset)
+        train_ratio = self.data_split_ratio
+        train_size = int(train_ratio * total_size)
+        test_size = total_size - train_size
+
+        train_dataset, test_dataset = random_split(
+            dataset,
+            [train_size, test_size],
+            generator=self._generator
+        )
+        custom_train_dataset = CatBreedDataset.from_dataset(
+            train_dataset,
             processor=get_processor(),
-            randomize=False,
-            seed=self._seed,
+            transform=CustomDataModule.train_transforms,
+        )
+        custom_test_dataset = CatBreedDataset.from_dataset(
+            test_dataset,
+            processor=get_processor(),
             transform=CustomDataModule.val_transforms,
         )
-        self.labels = sorted(list(set(self.custom_test_dataset.labels)))
-        self.id2label = self.custom_test_dataset.id2label
-        self.label2id = self.custom_test_dataset.label2id
+        return custom_train_dataset, custom_test_dataset
+
+    def train_val_split(
+            self,
+            dataset: Dataset
+    ) -> tuple[CatBreedDataset, CatBreedDataset]:
+        total_size = len(dataset)
+        train_ratio = self.data_split_ratio
+        train_size = int(train_ratio * total_size)
+        val_size = total_size - train_size
+
+        train_dataset, val_dataset = random_split(
+            dataset,
+            [train_size, val_size],
+            generator=self._generator
+        )
+        custom_train_dataset = CatBreedDataset.from_dataset(
+            train_dataset,
+            processor=get_processor(),
+            transform=CustomDataModule.train_transforms,
+        )
+        custom_val_dataset = CatBreedDataset.from_dataset(
+            val_dataset,
+            processor=get_processor(),
+            transform=CustomDataModule.val_transforms,
+        )
+        return custom_train_dataset, custom_val_dataset
 
     @staticmethod
     def get_labels_metainfo(
@@ -108,7 +147,7 @@ class CustomDataModule(pl.LightningDataModule):
         with open(labels_meta_path, "w") as labels_meta_file:
             json.dump(labels_meta, labels_meta_file, indent=4)
 
-    def train_setup(self, stage=None):
+    def setup(self, stage=None):
         self.dataset = CatBreedDataset.from_data_path(
             self._data_dir,
             self._num_labels,
@@ -118,6 +157,7 @@ class CustomDataModule(pl.LightningDataModule):
             transform=CustomDataModule.val_transforms,
         )
         self.labels = sorted(list(set(self.dataset.labels)))
+        print(len(self.labels))
         self.id2label = self.dataset.id2label
         self.write_labels_metainfo(
             self.id2label_meta_file,
@@ -129,25 +169,11 @@ class CustomDataModule(pl.LightningDataModule):
             self.label2id
         )
 
-        total_size = len(self.dataset.dataset)
-        train_ratio = self.train_val_ratio
-        train_size = int(train_ratio * total_size)
-        val_size = total_size - train_size
-
-        train_dataset, val_dataset = random_split(
-            self.dataset.dataset,
-            [train_size, val_size],
-            generator=self._generator
+        self.custom_train_dataset, self.custom_test_dataset = self.train_test_split(
+            self.dataset.dataset
         )
-        self.custom_train_dataset = CatBreedDataset.from_dataset(
-            train_dataset,
-            processor=get_processor(),
-            transform=CustomDataModule.train_transforms,
-        )
-        self.custom_val_dataset = CatBreedDataset.from_dataset(
-            val_dataset,
-            processor=get_processor(),
-            transform=CustomDataModule.val_transforms,
+        self.custom_train_dataset, self.custom_val_dataset = self.train_val_split(
+            self.custom_train_dataset.dataset
         )
 
     def train_dataloader(self):
