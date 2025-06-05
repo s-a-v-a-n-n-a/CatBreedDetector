@@ -1,11 +1,7 @@
-import os
 import shutil
-from pathlib import Path
 
 import fire
 import kagglehub
-
-from dvc.api import DVCFileSystem
 
 
 def download(url: str, target_dir: str) -> None:
@@ -17,12 +13,6 @@ def download(url: str, target_dir: str) -> None:
 
     shutil.rmtree(path)
     print("Removed files from ", path)
-
-
-def ensure_data_downloaded(data_path: Path):
-    fs = DVCFileSystem("./data")
-    if not os.path.exists(data_path):
-        fs.get(data_path, data_path, recursive=True)
 
 
 if __name__ == "__main__":

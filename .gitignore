@@ -176,3 +176,4 @@ cython_debug/
 */data/data
 */data/data_refined
 */data/labels_metainfo
+*/data/artifacts

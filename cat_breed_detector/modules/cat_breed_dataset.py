@@ -10,8 +10,7 @@ from torch.utils.data import WeightedRandomSampler
 import torchvision.transforms as transforms
 from collections import Counter
 from transformers import (
-    ViTImageProcessor,
-    ViTForImageClassification
+    ViTImageProcessor
 )
 
 
@@ -109,7 +108,6 @@ class CatBreedDataset(Dataset):
 
         df = df[df['label'].isin(df['label'].value_counts().head(num_labels).index)]
         labels = sorted(list(set(df["label"])))
-        print(len(labels))
         redundant_labels_dict = {
             'Norwegian Forest Cat': 'Norwegian Forest',
             'Sphynx - Hairless Cat': 'Sphynx'
@@ -117,7 +115,6 @@ class CatBreedDataset(Dataset):
         df['label'] = df['label'].replace(redundant_labels_dict)
 
         labels = sorted(list(set(df["label"])))
-        print(len(labels))
 
         return df, labels
 
@@ -194,8 +191,11 @@ class CatBreedDataset(Dataset):
         
         undersampled_indices = np.concatenate(undersampled_indices)
 
-        label_counts = np.array([class_counts[label] for label in labels[undersampled_indices]])
-        sample_weights = 1. / label_counts
+        label_counts = np.array([
+            class_counts[label]
+            for label in labels[undersampled_indices]]
+        )
+        sample_weights = 1.0 / label_counts
         sample_weights /= sample_weights.sum()
         
         np.random.seed(seed)

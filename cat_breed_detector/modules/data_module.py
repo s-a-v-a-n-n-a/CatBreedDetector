@@ -1,16 +1,18 @@
-import json
 import torch
 from pathlib import Path
 import torchvision.transforms as transforms
 import pytorch_lightning as pl
 from torch.utils.data import DataLoader, random_split
-from datasets import Dataset, Image, ClassLabel
-from model_getter import get_model, get_processor, MODEL_SOURCE
-from dataset import CatBreedDataset
+from utilities.model_getter import get_processor
+from modules.cat_breed_dataset import CatBreedDataset
 from torch.nn.utils.rnn import pad_sequence
 
+import typing as tp 
+import utilities.labels_handler as labels_handler
+from dvc.api import DVCFileSystem
 
-class CustomDataModule(pl.LightningDataModule):
+
+class ViTDataModule(pl.LightningDataModule):
 
     _processor = get_processor()
     _image_mean, _image_std = _processor.image_mean, _processor.image_std
@@ -31,31 +33,22 @@ class CustomDataModule(pl.LightningDataModule):
 
     def __init__(
             self,
-            data_dir: Path,
-            num_labels: int,
-            id2label_meta_file: Path,
-            label2id_meta_file: Path,
-            batch_size: int,
-            num_workers: int,
-            data_split_ratio: float,
-            seed: int
+            config: dict[str, any]
     ) -> None:
         super().__init__()
-        self._data_dir = data_dir
-        self._num_labels = num_labels
-        self.id2label_meta_file = id2label_meta_file
-        self.label2id_meta_file = label2id_meta_file
-        self.batch_size = batch_size
-        self.num_workers = num_workers
-        self.data_split_ratio = data_split_ratio
+        self._data_dir = config["data_loading"]["data_path"]
+        self._config = config
+        self.batch_size = config["training"]["batch_size"]
+        self.num_workers = config["training"]["num_workers"]
+        self.data_split_ratio = config["training"]["train_val_ratio"]
 
-        self._seed = seed
-        self._generator = torch.Generator().manual_seed(seed)
+        self._seed = config["training"]["seed"]
+        self._generator = torch.Generator().manual_seed(config["training"]["seed"])
 
     @staticmethod
     def train_transforms(examples: dict[str, any]) -> dict[str, any]:
         examples['pixel_values'] = [
-            CustomDataModule._train_transforms(image.convert("RGB"))
+            ViTDataModule._train_transforms(image.convert("RGB"))
             for image in examples['images']
         ]
         return examples
@@ -63,7 +56,7 @@ class CustomDataModule(pl.LightningDataModule):
     @staticmethod
     def val_transforms(examples: dict[str, any]) -> dict[str, any]:
         examples['pixel_values'] = [
-            CustomDataModule._val_transforms(image.convert("RGB"))
+            ViTDataModule._val_transforms(image.convert("RGB"))
             for image in examples['images']
         ]
         return examples
@@ -81,7 +74,7 @@ class CustomDataModule(pl.LightningDataModule):
 
     def train_test_split(
             self,
-            dataset: Dataset
+            dataset: torch.utils.data.Dataset
     ) -> tuple[CatBreedDataset, CatBreedDataset]:
         total_size = len(dataset)
         train_ratio = self.data_split_ratio
@@ -96,18 +89,18 @@ class CustomDataModule(pl.LightningDataModule):
         custom_train_dataset = CatBreedDataset.from_dataset(
             train_dataset,
             processor=get_processor(),
-            transform=CustomDataModule.train_transforms,
+            transform=ViTDataModule.train_transforms,
         )
         custom_test_dataset = CatBreedDataset.from_dataset(
             test_dataset,
             processor=get_processor(),
-            transform=CustomDataModule.val_transforms,
+            transform=ViTDataModule.val_transforms,
         )
         return custom_train_dataset, custom_test_dataset
 
     def train_val_split(
             self,
-            dataset: Dataset
+            dataset: torch.utils.data.Dataset
     ) -> tuple[CatBreedDataset, CatBreedDataset]:
         total_size = len(dataset)
         train_ratio = self.data_split_ratio
@@ -122,50 +115,46 @@ class CustomDataModule(pl.LightningDataModule):
         custom_train_dataset = CatBreedDataset.from_dataset(
             train_dataset,
             processor=get_processor(),
-            transform=CustomDataModule.train_transforms,
+            transform=ViTDataModule.train_transforms,
         )
         custom_val_dataset = CatBreedDataset.from_dataset(
             val_dataset,
             processor=get_processor(),
-            transform=CustomDataModule.val_transforms,
+            transform=ViTDataModule.val_transforms,
         )
         return custom_train_dataset, custom_val_dataset
 
     @staticmethod
-    def get_labels_metainfo(
-            labels_meta_path: Path
-    ) -> dict[str, any]:
-        with open(labels_meta_path, "r") as labels_meta_file:
-            labels_meta = json.load(labels_meta_file)
-            return labels_meta
+    def ensure_data_downloaded(data_path: Path):
+        fs = DVCFileSystem("./data")
+        if not Path(data_path).exists():
+            fs.get(data_path, data_path, recursive=True)
 
-    @staticmethod
-    def write_labels_metainfo(
-            labels_meta_path: Path,
-            labels_meta: dict[str, any]
-    ) -> None:
-        with open(labels_meta_path, "w") as labels_meta_file:
-            json.dump(labels_meta, labels_meta_file, indent=4)
+    def prepare_data(self):
+        for data_path in self._data_dir:
+            self.ensure_data_downloaded(data_path)
+        self.ensure_data_downloaded(self._config["data_loading"]["labels2id_meta"])
+        self.ensure_data_downloaded(self._config["data_loading"]["id2labels_meta"])
 
-    def setup(self, stage=None):
+    def setup(self, stage: tp.Optional[str] = None):
+        self._num_labels = self._config["model"]["num_labels"]
         self.dataset = CatBreedDataset.from_data_path(
             self._data_dir,
             self._num_labels,
             processor=get_processor(),
             randomize=True,
             seed=self._seed,
-            transform=CustomDataModule.val_transforms,
+            transform=ViTDataModule.val_transforms,
         )
         self.labels = sorted(list(set(self.dataset.labels)))
-        print(len(self.labels))
         self.id2label = self.dataset.id2label
-        self.write_labels_metainfo(
-            self.id2label_meta_file,
+        labels_handler.write_labels_metainfo(
+            self._config["data_loading"]["id2labels_meta"],
             self.id2label
         )
         self.label2id = self.dataset.label2id
-        self.write_labels_metainfo(
-            self.label2id_meta_file,
+        labels_handler.write_labels_metainfo(
+            self._config["data_loading"]["labels2id_meta"],
             self.label2id
         )
 
@@ -176,29 +165,29 @@ class CustomDataModule(pl.LightningDataModule):
             self.custom_train_dataset.dataset
         )
 
-    def train_dataloader(self):
+    def train_dataloader(self) -> torch.utils.data.DataLoader:
         return DataLoader(
             self.custom_train_dataset,
             batch_size=self.batch_size,
             shuffle=True,
             num_workers=self.num_workers,
-            collate_fn=CustomDataModule.collate_fn
+            collate_fn=ViTDataModule.collate_fn
         )
 
-    def val_dataloader(self):
+    def val_dataloader(self) -> torch.utils.data.DataLoader:
         return DataLoader(
             self.custom_val_dataset,
             batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.num_workers,
-            collate_fn=CustomDataModule.collate_fn
+            collate_fn=ViTDataModule.collate_fn
         )
 
-    def test_dataloader(self):
+    def test_dataloader(self) -> torch.utils.data.DataLoader:
         return DataLoader(
             self.custom_test_dataset,
             batch_size=self.batch_size,
             shuffle=False,
             num_workers=self.num_workers,
-            collate_fn=CustomDataModule.collate_fn
+            collate_fn=ViTDataModule.collate_fn
         )

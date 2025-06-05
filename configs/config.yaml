@@ -3,5 +3,5 @@ defaults:
   - model: model
   - training: training
   - logging:
-    - logging
-    - logging_parameters
+      - logging
+      - logging_parameters

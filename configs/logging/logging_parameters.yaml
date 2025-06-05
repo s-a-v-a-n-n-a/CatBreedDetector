@@ -1,3 +1,4 @@
 logging_url: 127.0.0.1:8080
 steps_to_log: 1
 test_steps_to_log: 10
+plots_path: plots
