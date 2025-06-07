@@ -120,8 +120,6 @@ class ViTDataModule(pl.LightningDataModule):
     def prepare_data(self):
         for data_path in self._data_dir:
             ensure_data_unpacked(data_path)
-        ensure_data_unpacked(self._config["data_loading"]["labels2id_meta"])
-        ensure_data_unpacked(self._config["data_loading"]["id2labels_meta"])
 
     def setup(self, stage: tp.Optional[str] = None):
         self._num_labels = self._config["model"]["num_labels"]
