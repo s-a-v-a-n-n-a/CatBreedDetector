@@ -65,6 +65,8 @@ _В описании все ссылки привязаны к фразам дл
 3.10. Для настройки и возможности повторить действия необходимо следующее:
 
 - `git pull https://github.com/s-a-v-a-n-n-a/cat-breed-detector.git`
+- `sudo apt-get update`
+- `sudo apt-get install nvidia-cuda-toolkit libboost-all-dev python3-dev build-essential`
 - `poetry install --no-root`
 - `eval $(poetry env activate)`
 
@@ -112,11 +114,8 @@ _.trt.
   Для удобства в директории models представлена модель `model.fp32.trt.dvc` в
   dvc. При этом необходимо учитывать, что пакет tensorrt на устройстве должен
   поддерживать версию 10.11.0.33 для успешного перевода. Чтобы можно было
-  запускать скрипт с переводом в TensorRT, может быть полезно установить
-  следующие пакеты:
-
-  - `sudo apt-get update`
-  - `sudo apt-get install nvidia-cuda-toolkit libboost-all-dev python3-dev build-essential`
+  запускать скрипт с переводом в TensorRT, может быть полезно установить пакеты
+  из начала документа.
 
 ## Infer
 

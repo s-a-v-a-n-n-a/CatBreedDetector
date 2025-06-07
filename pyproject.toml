@@ -23,6 +23,9 @@ dependencies = [
     "tritonclient[http] (>=2.58.0,<3.0.0)",
 ]
 
+[tool.poetry]
+packages = [{ include = "cat_breed_detector" }]
+
 [tool.poetry.group.dev.dependencies]
 fire = "^0.7.0"
 pre-commit = "^4.2.0"
