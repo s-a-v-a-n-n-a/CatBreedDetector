@@ -1,3 +1,5 @@
 num_labels: 50
 
 model_local_path: models
+
+model_onnx_name: model.onnx

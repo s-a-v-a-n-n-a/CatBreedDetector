@@ -5,9 +5,9 @@ from hydra import compose, initialize
 
 from modules.data_module import ViTDataModule
 from modules.module import ViTClassifier
+from utilities.data_handler import ensure_data_unpacked
 from utilities.logging_selector import get_logger
 from utilities.model_getter import get_model
-from utilities.data_handler import ensure_data_unpacked
 
 
 def main(test_dir: str, checkpoint_name: str) -> None:

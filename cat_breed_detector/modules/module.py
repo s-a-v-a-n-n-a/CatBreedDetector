@@ -285,7 +285,9 @@ class ViTClassifier(pl.LightningModule):
     def predict_dataloader(self):
         return self.datamodule.predict_dataloader()
 
-    def convert_to_onnx(self, output_dir: Path, sample_input_path: str = None) -> None:
+    def convert_to_onnx(
+        self, output_dir: Path, model_name: str, sample_input_path: str = None
+    ) -> None:
         Path(output_dir).mkdir(exist_ok=True)
 
         self.model.eval()
@@ -297,7 +299,7 @@ class ViTClassifier(pl.LightningModule):
                 1, 3, self.datamodule._size, self.datamodule._size
             ).to(device)
 
-        onnx_path = Path(output_dir) / "model.onnx"
+        onnx_path = Path(output_dir) / model_name
         torch.onnx.export(
             self.model.to(device),
             sample_input,

@@ -3,33 +3,36 @@ from pathlib import Path
 
 import fire
 import numpy as np
-import onnx
-import onnxruntime as ort
+import tritonclient.http as httpclient
 from hydra import compose, initialize
 from PIL import Image
 
-from utilities.data_handler import ensure_data_unpacked
 from utilities.model_getter import get_processor
 
 
-def main(model_path: Path, images_to_analyze: Path) -> None:
+def main(url: str, images_to_analyze: Path):
     with initialize(config_path="../configs", version_base="1.1"):
         config = compose(config_name="config")
-        ensure_data_unpacked(model_path)
-        onnx.load(model_path)
-        ort_session = ort.InferenceSession(model_path)
         with open(config["data_loading"]["id2labels_meta"]) as labels_meta_file:
             class_names = json.load(labels_meta_file)
+        client = httpclient.InferenceServerClient(url=url)
 
         processor = get_processor()
 
         for image_path in Path(images_to_analyze).glob("**/*"):
             image = Image.open(image_path).convert("RGB")
             inputs = processor(images=image, return_tensors="pt")
-            input_data = {"pixel_values": inputs["pixel_values"].numpy()}
+            input_data = inputs["pixel_values"].numpy().astype(np.float32)
+            inputs = httpclient.InferInput("pixel_values", input_data.shape, "FP32")
+            inputs.set_data_from_numpy(input_data)
 
-            outputs = ort_session.run(None, input_data)
-            predicted_class = np.argmax(outputs[0])
+            outputs = [httpclient.InferRequestedOutput("logits")]
+            response = client.infer(
+                model_name="cat_breed_detector", inputs=[inputs], outputs=outputs
+            )
+
+            result = response.as_numpy("logits")
+            predicted_class = np.argmax(result[0])
 
             print(
                 "For image: {0}, got breed: {1}".format(

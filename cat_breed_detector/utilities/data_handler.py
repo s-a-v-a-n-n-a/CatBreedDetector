@@ -1,5 +1,6 @@
-from dvc.api import DVCFileSystem
 from pathlib import Path
+
+from dvc.api import DVCFileSystem
 
 
 def ensure_data_unpacked(data_path: Path):
