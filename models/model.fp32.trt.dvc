@@ -1,0 +1,6 @@
+outs:
+- md5: 42df5fa205d5303f9c6cf6cdd123730e
+  size: 345635844
+  isexec: true
+  hash: md5
+  path: model.fp32.trt

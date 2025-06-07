@@ -1,0 +1,3 @@
+./model_val_loss=1.12.ckpt
+./model.onnx
+./model.fp32.trt

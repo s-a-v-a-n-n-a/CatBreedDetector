@@ -3,14 +3,15 @@ import pytorch_lightning as pl
 import torch
 from hydra import compose, initialize
 
-from utilities.logging_selector import get_logger
 from modules.data_module import ViTDataModule
 from modules.module import ViTClassifier
+from utilities.logging_selector import get_logger
 from utilities.model_getter import get_model
+from utilities.data_handler import ensure_data_unpacked
 
 
 def main(test_dir: str, checkpoint_name: str) -> None:
-    with initialize(config_path="../configs"):
+    with initialize(config_path="../configs", version_base="1.1"):
         config = compose(config_name="config")
 
         datamodule = ViTDataModule(config)
@@ -21,6 +22,7 @@ def main(test_dir: str, checkpoint_name: str) -> None:
         model = get_model(datamodule)
         torch.set_float32_matmul_precision("medium")
 
+        ensure_data_unpacked(f"{test_dir}/{checkpoint_name}")
         module = ViTClassifier.load_from_checkpoint(
             f"{test_dir}/{checkpoint_name}",
             model=model,

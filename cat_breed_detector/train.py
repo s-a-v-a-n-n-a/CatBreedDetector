@@ -3,9 +3,9 @@ import pytorch_lightning as pl
 import torch
 from omegaconf import DictConfig
 
-from utilities.logging_selector import get_logger
 from modules.data_module import ViTDataModule
 from modules.module import ViTClassifier
+from utilities.logging_selector import get_logger
 from utilities.model_getter import get_model
 
 
@@ -48,11 +48,11 @@ def main(config: DictConfig):
         callbacks=[checkpoint_callback],
     )
     trainer.fit(module, datamodule=datamodule)
-    # if trainer.is_global_zero:
-    #     module.convert_to_onnx(
-    #         output_dir=config["models"]["model_local_path"],
-    #         # sample_input_path="data/processed/sample_input.pt"
-    #     )
+
+    if trainer.is_global_zero:
+        module.convert_to_onnx(
+            output_dir=config["model"]["model_local_path"],
+        )
 
 
 if __name__ == "__main__":

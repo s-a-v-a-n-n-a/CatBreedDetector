@@ -1,12 +1,12 @@
-import pytorch_lightning as pl
-import torchmetrics
-import torch
-from transformers import get_linear_schedule_with_warmup
-import matplotlib.pyplot as plt
-
-from pathlib import Path
 import typing as tp
+from pathlib import Path
+
 import git
+import matplotlib.pyplot as plt
+import pytorch_lightning as pl
+import torch
+import torchmetrics
+from transformers import get_linear_schedule_with_warmup
 
 
 class ViTClassifier(pl.LightningModule):
@@ -15,12 +15,12 @@ class ViTClassifier(pl.LightningModule):
     """
 
     def __init__(
-            self,
-            model,
-            datamodule: pl.LightningDataModule,
-            train_parameters: dict[str, any],
-            log_parameters: dict[str, any],
-            for_test: bool = False
+        self,
+        model,
+        datamodule: pl.LightningDataModule,
+        train_parameters: dict[str, any],
+        log_parameters: dict[str, any],
+        for_test: bool = False,
     ) -> None:
         super().__init__()
         self.model = model
@@ -31,10 +31,10 @@ class ViTClassifier(pl.LightningModule):
 
         self._log_parameters = log_parameters
         self._log_parameters = {
-            "all_logs": self._log_parameters["mlflow_save_dir"]\
-            if self._log_parameters["label"] == "mlflow"\
+            "all_logs": self._log_parameters["mlflow_save_dir"]
+            if self._log_parameters["label"] == "mlflow"
             else self._log_parameters["save_dir"],
-            **self._log_parameters
+            **self._log_parameters,
         }
         self.criterion = torch.nn.CrossEntropyLoss()
         if not for_test:
@@ -42,25 +42,19 @@ class ViTClassifier(pl.LightningModule):
             self.train_accuracies = []
             self.train_f1scores = []
             self.train_accuracy = torchmetrics.Accuracy(
-                task="multiclass",
-                num_classes=self.num_labels
+                task="multiclass", num_classes=self.num_labels
             )
             self.train_f1score = torchmetrics.F1Score(
-                task="multiclass",
-                num_classes=self.num_labels,
-                average='weighted'
+                task="multiclass", num_classes=self.num_labels, average="weighted"
             )
             self.val_losses = []
             self.val_accuracies = []
             self.val_f1scores = []
             self.val_accuracy = torchmetrics.Accuracy(
-                task="multiclass",
-                num_classes=self.num_labels
+                task="multiclass", num_classes=self.num_labels
             )
             self.val_f1score = torchmetrics.F1Score(
-                task="multiclass",
-                num_classes=self.num_labels,
-                average='weighted'
+                task="multiclass", num_classes=self.num_labels, average="weighted"
             )
             self.num_epochs = train_parameters["num_epochs"]
             self.num_training_steps = self.num_epochs * len(
@@ -73,20 +67,18 @@ class ViTClassifier(pl.LightningModule):
             self.save_custom_parameters()
         if for_test:
             self.test_accuracy = torchmetrics.Accuracy(
-                task="multiclass",
-                num_classes=self.num_labels
+                task="multiclass", num_classes=self.num_labels
             )
             self.test_f1score = torchmetrics.F1Score(
-                task="multiclass",
-                num_classes=self.num_labels,
-                average='weighted'
+                task="multiclass", num_classes=self.num_labels, average="weighted"
             )
         self.datamodule = datamodule
 
     def save_custom_parameters(self):
         config = self.model.config
         hyperparams = {
-            k: v for k, v in config.to_dict().items() 
+            k: v
+            for k, v in config.to_dict().items()
             if not k.startswith("_") and not callable(v)
         }
 
@@ -99,30 +91,15 @@ class ViTClassifier(pl.LightningModule):
         hyperparams.update(self.log_version())
         self.save_hyperparameters(hyperparams)
 
-        # params = training_hyperparams
-        # params = {**params, **self.log_version()}
-        # self.save_parameters(params)
-        # logger = self.logger.experiment
-        # logger.log_params(hyperparams)
-        # self.log_version(logger)
-
     def log_version(self) -> dict:
         repo = git.Repo(search_parent_directories=True)
         return {"git_commit_id": repo.head.object.hexsha}
-
-    # def log_model(self):
-    #     logger = self.logger.experiment
-    #     logger.pytorch.log_model(self.model, "model")
 
     def forward(self, x):
         return self.model(pixel_values=x).logits
 
     def visualize(
-            self,
-            title: str,
-            label: str,
-            losses: list[float],
-            to_save: Path
+        self, title: str, label: str, losses: list[float], to_save: Path
     ) -> None:
         plt.figure()
         plt.plot(losses, label=label)
@@ -132,13 +109,8 @@ class ViTClassifier(pl.LightningModule):
         plt.legend()
         plt.savefig(to_save)
         plt.close()
-        # mlflow.load_artifact(to_save)
 
-    def common_step(
-            self,
-            batch,
-            batch_idx
-    ) -> tuple:
+    def common_step(self, batch, batch_idx) -> tuple:
         pixel_values = batch["pixel_values"]
         labels = batch["labels"]
         preds = self(pixel_values)
@@ -157,26 +129,20 @@ class ViTClassifier(pl.LightningModule):
         self.train_accuracies.append(self.train_accuracy.compute().item())
         self.train_f1scores.append(self.train_f1score.compute().item())
 
-        self.log(
-            "train_loss",
-            loss,
-            prog_bar=True,
-            on_step=False,
-            on_epoch=True
-        )
+        self.log("train_loss", loss, prog_bar=True, on_step=False, on_epoch=True)
         self.log(
             "train_accuracy",
             self.train_accuracy,
             prog_bar=True,
             on_step=False,
-            on_epoch=True
+            on_epoch=True,
         )
         self.log(
             "train_f1score",
             self.train_f1score,
             prog_bar=True,
             on_step=False,
-            on_epoch=True
+            on_epoch=True,
         )
         return loss
 
@@ -189,80 +155,66 @@ class ViTClassifier(pl.LightningModule):
         self.val_accuracies.append(self.val_accuracy.compute().item())
         self.val_f1scores.append(self.val_f1score.compute().item())
 
-        self.log(
-            "val_loss",
-            loss,
-            prog_bar=True,
-            on_step=False,
-            on_epoch=True
-        )
+        self.log("val_loss", loss, prog_bar=True, on_step=False, on_epoch=True)
         self.log(
             "val_accuracy",
             self.val_accuracy,
             prog_bar=True,
             on_step=False,
-            on_epoch=True
+            on_epoch=True,
         )
         self.log(
-            "val_f1score",
-            self.val_f1score,
-            prog_bar=True,
-            on_step=False,
-            on_epoch=True
+            "val_f1score", self.val_f1score, prog_bar=True, on_step=False, on_epoch=True
         )
         return {
             "val_loss": loss,
             "val_accuracy": self.val_accuracy,
-            "val_f1score": self.val_f1score
+            "val_f1score": self.val_f1score,
         }
 
     def on_train_end(self):
-        plots_path = Path(
-            self._log_parameters["all_logs"]
-        ) / self._log_parameters["plots_path"]
+        plots_path = (
+            Path(self._log_parameters["all_logs"]) / self._log_parameters["plots_path"]
+        )
         Path(plots_path).mkdir(parents=True, exist_ok=True)
         self.visualize(
             "Train loss",
             "Train loss",
             self.train_losses,
-            Path(plots_path) / "train_loss.png"
+            Path(plots_path) / "train_loss.png",
         )
         self.visualize(
             "Train accuracy",
             "Train accuracy",
             self.train_accuracies,
-            Path(plots_path) / "train_accuracy.png"
+            Path(plots_path) / "train_accuracy.png",
         )
         self.visualize(
             "Train f1score",
             "Train f1score",
             self.train_f1scores,
-            Path(plots_path) / "train_f1score.png"
+            Path(plots_path) / "train_f1score.png",
         )
-        # self.log_model()
 
     def on_validation_end(self):
-        plots_path = Path(
-            self._log_parameters["all_logs"]
-        ) / self._log_parameters["plots_path"]
+        plots_path = (
+            Path(self._log_parameters["all_logs"]) / self._log_parameters["plots_path"]
+        )
         Path(plots_path).mkdir(parents=True, exist_ok=True)
         self.visualize(
-            "Val loss",
-            "Val loss",
-            self.val_losses,
-            Path(plots_path) / "val_loss.png"
+            "Val loss", "Val loss", self.val_losses, Path(plots_path) / "val_loss.png"
         )
         self.visualize(
             "Val accuracy",
             "Val accuracy",
             self.val_accuracies,
-            Path(plots_path) / "val_accuracy.png"
+            Path(plots_path) / "val_accuracy.png",
         )
         self.visualize(
             "Val f1score",
             "Val f1score",
             self.val_f1scores,
-            Path(plots_path) / "val_f1score.png"
+            Path(plots_path) / "val_f1score.png",
         )
 
     def test_step(self, batch, batch_idx):
@@ -275,45 +227,32 @@ class ViTClassifier(pl.LightningModule):
             self.test_accuracy,
             prog_bar=True,
             on_step=False,
-            on_epoch=True
+            on_epoch=True,
         )
         self.log(
             "test_f1score",
             self.test_f1score,
             prog_bar=True,
             on_step=False,
-            on_epoch=True
+            on_epoch=True,
         )
-        return {
-            "test_accuracy": self.test_accuracy,
-            "test_f1score": self.test_f1score
-        }
+        return {"test_accuracy": self.test_accuracy, "test_f1score": self.test_f1score}
 
     def predict_step(
-            self,
-            batch: tp.Any,
-            batch_idx: int,
-            dataloader_idx: int = 0
+        self, batch: tp.Any, batch_idx: int, dataloader_idx: int = 0
     ) -> tp.Any:
         pixel_values = batch["pixel_values"]
         preds = self(pixel_values)
         probabilities = torch.nn.functional.softmax(preds, dim=1)
         prediction_class = torch.argmax(probabilities).item()
         return {
-            # "class_id": pred_class,
             "class_name": self.datamodule.id2label[str(int(prediction_class))],
             "confidence": probabilities[0][prediction_class].item(),
-            # "probabilities": {
-            #     cls_name: probs[0][i].item() 
-            #     for i, cls_name in enumerate(self.class_names)
-            # }
         }
 
     def get_optimizer(self):
         optimizer = torch.optim.AdamW(
-            self.parameters(),
-            lr=self.lr,
-            weight_decay=self.weight_decay
+            self.parameters(), lr=self.lr, weight_decay=self.weight_decay
         )
         return optimizer
 
@@ -322,7 +261,7 @@ class ViTClassifier(pl.LightningModule):
         scheduler = get_linear_schedule_with_warmup(
             optimizer,
             num_warmup_steps=self.num_warmup_steps,
-            num_training_steps=self.num_training_steps
+            num_training_steps=self.num_training_steps,
         )
 
         return {
@@ -330,8 +269,8 @@ class ViTClassifier(pl.LightningModule):
             "lr_scheduler": {
                 "scheduler": scheduler,
                 "interval": "step",
-                "frequency": 1
-            }
+                "frequency": 1,
+            },
         }
 
     def train_dataloader(self):
@@ -345,3 +284,25 @@ class ViTClassifier(pl.LightningModule):
 
     def predict_dataloader(self):
         return self.datamodule.predict_dataloader()
+
+    def convert_to_onnx(self, output_dir: Path, sample_input_path: str = None) -> None:
+        Path(output_dir).mkdir(exist_ok=True)
+
+        self.model.eval()
+        device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        if sample_input_path:
+            sample_input = torch.load(sample_input_path)
+        else:
+            sample_input = torch.randn(
+                1, 3, self.datamodule._size, self.datamodule._size
+            ).to(device)
+
+        onnx_path = Path(output_dir) / "model.onnx"
+        torch.onnx.export(
+            self.model.to(device),
+            sample_input,
+            onnx_path,
+            input_names=["pixel_values"],
+            output_names=["logits"],
+            opset_version=14,
+        )
