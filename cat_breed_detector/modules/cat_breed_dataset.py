@@ -133,7 +133,7 @@ class CatBreedDataset(Dataset):
         return dataset
 
     @staticmethod
-    def random_resample(dataframe: pd.DataFrame, seed: int = 42) -> pd.DataFrame:
+    def random_resample(dataframe: pd.DataFrame, seed: int) -> pd.DataFrame:
         if not isinstance(dataframe, pd.DataFrame):
             raise TypeError("Input must be a pandas DataFrame")
 

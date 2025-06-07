@@ -51,7 +51,7 @@ _В описании все ссылки привязаны к фразам дл
 
 Модель основана на архитектуре Vision Transformer, привожу ссылку из
 [ноутбука на huggingface](https://huggingface.co/google/vit-base-patch16-224-in21k).
-Это будет обучение на приведённом ранее наборе данных.
+Всего 85.8 M параметров. Это будет обучение на приведённом ранее наборе данных.
 
 ### Внедрение
 
@@ -194,5 +194,9 @@ _.trt.
   - https://www.kaggle.com/code/dima806/cat-breed-image-detection-vit/notebook
 
 - Данные:
+
   - https://www.kaggle.com/datasets/ma7555/cat-breeds-dataset
   - https://www.kaggle.com/datasets/doctrinek/catbreedsrefined-7k
+
+- Обучаемая модель:
+  - https://huggingface.co/google/vit-base-patch16-224-in21k

@@ -7,7 +7,7 @@ import torch
 from hydra import compose, initialize
 
 from modules.infer_data_module import InferDataModule
-from modules.module import ViTClassifier
+from modules.module import Module
 from utilities.model_getter import get_model
 
 
@@ -20,7 +20,7 @@ def main(models_dir: Path, checkpoint_name: str, images_to_analyze: any) -> None
             datamodule.prepare_data()
             datamodule.setup()
 
-            model = ViTClassifier.load_from_checkpoint(
+            model = Module.load_from_checkpoint(
                 Path(models_dir) / checkpoint_name,
                 model=get_model(datamodule),
                 datamodule=datamodule,

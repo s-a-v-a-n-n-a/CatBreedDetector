@@ -3,8 +3,8 @@ import pytorch_lightning as pl
 import torch
 from hydra import compose, initialize
 
-from modules.data_module import ViTDataModule
-from modules.module import ViTClassifier
+from modules.module import Module
+from modules.vit_data_module import ViTDataModule
 from utilities.logging_selector import get_logger
 from utilities.model_getter import get_model
 
@@ -25,7 +25,7 @@ def main():
         assert len(datamodule.labels) <= config["model"]["num_labels"]
         model = get_model(datamodule)
 
-        module = ViTClassifier(
+        module = Module(
             model,
             datamodule=datamodule,
             train_parameters=config["training"],

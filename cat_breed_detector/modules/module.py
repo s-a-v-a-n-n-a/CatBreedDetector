@@ -9,7 +9,7 @@ import torchmetrics
 from transformers import get_linear_schedule_with_warmup
 
 
-class ViTClassifier(pl.LightningModule):
+class Module(pl.LightningModule):
     """Module for training, evaluation and testing models
     for the classification task.
     """
