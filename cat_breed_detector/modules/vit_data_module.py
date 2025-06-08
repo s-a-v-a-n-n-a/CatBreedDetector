@@ -8,7 +8,7 @@ from torch.utils.data import DataLoader, random_split
 
 import utilities.labels_handler as labels_handler
 from modules.cat_breed_dataset import CatBreedDataset
-from utilities.data_handler import ensure_data_unpacked, download_data
+from utilities.data_handler import download_data, ensure_data_unpacked
 from utilities.model_getter import get_processor
 
 
@@ -121,7 +121,7 @@ class ViTDataModule(pl.LightningDataModule):
         try:
             for data_path in self._data_dir:
                 ensure_data_unpacked(data_path)
-        except:
+        except Exception:
             print("Failed getting data from dvc, downloading...")
             download_data()
 

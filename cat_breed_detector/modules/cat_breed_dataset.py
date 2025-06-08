@@ -107,7 +107,7 @@ class CatBreedDataset(Dataset):
         return df, labels
 
     @staticmethod
-    def get_dataset_from_dataframe(df, labels_list, randomize: bool, seed: int):
+    def get_dataset_from_dataframe(df, labels_list: list, randomize: bool, seed: int):
         ClassLabels = ClassLabel(num_classes=len(labels_list), names=labels_list)
 
         if randomize:
@@ -156,7 +156,6 @@ class CatBreedDataset(Dataset):
         undersampled_indices = []
         for label, indices in class_indices.items():
             if class_counts[label] == max_count:
-                np.random.seed(seed)
                 selected = np.random.choice(indices, size=second_largest, replace=False)
                 undersampled_indices.append(selected)
             else:
@@ -170,7 +169,6 @@ class CatBreedDataset(Dataset):
         sample_weights = 1.0 / label_counts
         sample_weights /= sample_weights.sum()
 
-        np.random.seed(seed)
         resampled_indices = np.random.choice(
             undersampled_indices,
             size=len(undersampled_indices),
