@@ -75,21 +75,13 @@ _В описании все ссылки привязаны к фразам дл
 - `poetry install --no-root`
 - `eval $(poetry env activate)`
 
-Чтобы начать тренировку при помощи локального хранилища dvc:
-
-- `cd scripts`
-- `sudo chmod 755 scripts/download_dataset.sh`
-- `sudo chmod 755 scripts/download_dataset_refined.sh`
-- `./download_dataset.sh`
-- `./download_dataset_refined.sh`
-
 ## Train
 
 Чтобы запустить тренировку, достаточно из корня репозитория выполнить команду
 
 - `python3 cat_breed_detector/command.py train`
 
-Запущенный процесс натренирует модель и сохранит полученную модель в директорию
+Запущенный процесс скачает данные, если не сможет их получить из локального зранилища dvc, натренирует модель и сохранит полученную модель в директорию
 `models`. На данный момент там лежит \*.dvc файл с примером модели. В процессе
 обучения будут предобработаны скачанные данные, и в файлы
 data/labels_metainfo/id2labels_metainfo.json и
